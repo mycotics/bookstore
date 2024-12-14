@@ -7,8 +7,8 @@ services:
       - "3000:3000"
     environment:
       - RAILS_ENV=production
-      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
-      - DATABASE_HOST=db
-      - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=password
-      - DATABASE_NAME=myapp_development
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+#      - DATABASE_HOST=db
+#      - DATABASE_USER=postgres
+#      - DATABASE_PASSWORD=password
+#      - DATABASE_NAME=myapp_development
