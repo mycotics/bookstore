@@ -8,7 +8,8 @@ services:
     environment:
       - RAILS_ENV=production
       - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
-#      - DATABASE_HOST=db
-#      - DATABASE_USER=postgres
-#      - DATABASE_PASSWORD=password
-#      - DATABASE_NAME=myapp_development
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
