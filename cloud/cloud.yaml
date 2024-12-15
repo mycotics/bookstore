@@ -1,0 +1,513 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Creates a VPC with 2 public and 2 private subnets, 2 NAT gateways, an internet gateway, 
+  3 route tables, 1 RDS PostgreSQL instance, 2 EC2 instances for rails app servers, 1 EC2
+  instance for an ssh server and an application load balancer. Security groups are configured
+  to ensure secure communication between components.
+
+Resources:
+  # VPC definition
+  BookstoreVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: BookstoreVPC
+        - Key: Project
+          Value: Bookstore
+
+  # Internet Gateway
+  BookstoreInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: BookstoreInternetGateway
+        - Key: Project
+          Value: Bookstore
+
+  BookstoreVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      InternetGatewayId: !Ref BookstoreInternetGateway
+
+  # Public Subnets
+  BookstorePublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      Tags:
+        - Key: Name
+          Value: BookstorePublicSubnet1
+        - Key: Project
+          Value: Bookstore
+
+  BookstorePublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      Tags:
+        - Key: Name
+          Value: BookstorePublicSubnet2
+        - Key: Project
+          Value: Bookstore
+
+  # Private Subnets
+  BookstorePrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      Tags:
+        - Key: Name
+          Value: BookstorePrivateSubnet1
+        - Key: Project
+          Value: Bookstore
+
+  BookstorePrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
+      Tags:
+        - Key: Name
+          Value: BookstorePrivateSubnet2
+        - Key: Project
+          Value: Bookstore
+
+  # NAT Gateways
+  BookstoreNatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt BookstoreNatEIP1.AllocationId
+      SubnetId: !Ref BookstorePublicSubnet1
+      Tags:
+        - Key: Name
+          Value: BookstoreNatGateway1
+        - Key: Project
+          Value: Bookstore
+
+  BookstoreNatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt BookstoreNatEIP2.AllocationId
+      SubnetId: !Ref BookstorePublicSubnet2
+      Tags:
+        - Key: Name
+          Value: BookstoreNatGateway2
+        - Key: Project
+          Value: Bookstore
+
+  # Elastic IPs for NAT Gateways
+  BookstoreNatEIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: BookstoreNatEIP1
+        - Key: Project
+          Value: Bookstore
+
+  BookstoreNatEIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: BookstoreNatEIP2
+        - Key: Project
+          Value: Bookstore
+
+  # Public Route Table and Routes
+  BookstoreRouteTablePublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      Tags:
+        - Key: Name
+          Value: BookstoreRouteTablePublic
+        - Key: Project
+          Value: Bookstore
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref BookstoreRouteTablePublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref BookstoreInternetGateway
+
+  PublicSubnetRouteAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BookstorePublicSubnet1
+      RouteTableId: !Ref BookstoreRouteTablePublic
+
+  PublicSubnetRouteAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BookstorePublicSubnet2
+      RouteTableId: !Ref BookstoreRouteTablePublic
+
+  # Private Route Tables and Routes
+  BookstoreRouteTablePrivate1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      Tags:
+        - Key: Name
+          Value: BookstoreRouteTablePrivate1
+        - Key: Project
+          Value: Bookstore
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref BookstoreRouteTablePrivate1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref BookstoreNatGateway1
+
+  PrivateSubnetRouteAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BookstorePrivateSubnet1
+      RouteTableId: !Ref BookstoreRouteTablePrivate1
+
+  BookstoreRouteTablePrivate2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref BookstoreVPC
+      Tags:
+        - Key: Name
+          Value: BookstoreRouteTablePrivate2
+        - Key: Project
+          Value: Bookstore
+
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref BookstoreRouteTablePrivate2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref BookstoreNatGateway2
+
+  PrivateSubnetRouteAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BookstorePrivateSubnet2
+      RouteTableId: !Ref BookstoreRouteTablePrivate2
+
+  # Security Group for RDS
+  BookstoreRDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow RDS access
+      VpcId: !Ref BookstoreVPC
+      SecurityGroupIngress:
+        - CidrIp: !GetAtt BookstorePrivateSubnet1.CidrBlock
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+        - CidrIp: !GetAtt BookstorePrivateSubnet2.CidrBlock
+          IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+      Tags:
+        - Key: Name
+          Value: BookstoreRDSSecurityGroup
+        - Key: Project
+          Value: Bookstore
+
+  # Subnet Group for RDS
+  BookstoreRDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Bookstore RDS Subnet Group
+      SubnetIds:
+        - !Ref BookstorePrivateSubnet1
+        - !Ref BookstorePrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: BookstoreRDSSubnetGroup
+        - Key: Project
+          Value: Bookstore
+
+  # RDS PostgreSQL Instance
+  BookstoreRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+    #  DBInstanceIdentifier: BookstoreRDSInstance
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      DBName: bookstore
+      MasterUsername: bookstore
+      MasterUserPassword: bookstore
+      DBSubnetGroupName: !Ref BookstoreRDSSubnetGroup
+      VPCSecurityGroups:
+        - !Ref BookstoreRDSSecurityGroup
+      Tags:
+        - Key: Name
+          Value: BookstoreRDSInstance
+        - Key: Project
+          Value: Bookstore
+
+  # Security Group for EC2 Instances
+  BookstoreRailsServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow EC2 instance access
+      VpcId: !Ref BookstoreVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: !GetAtt BookstorePublicSubnet1.CidrBlock
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: !GetAtt BookstorePublicSubnet2.CidrBlock
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: BookstoreRailsServerSecurityGroup
+        - Key: Project
+          Value: Bookstore
+
+
+  # Launch Template for Rails Servers
+  BookstoreRailsLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: BookstoreRailsLaunchTemplate
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        ImageId: ami-05c172c7f0d3aed00
+        KeyName: acohaniuc-bookstore-keypair
+        SecurityGroupIds:
+          - !Ref BookstoreRailsServerSecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            
+            snap install aws-cli --classic
+            RAILS_MASTER_KEY=$(aws secretsmanager get-secret-value --secret-id BOOKSTORE_RAILS_MASTER_KEY --query 'SecretString' --output text | jq -r '.RAILS_MASTER_KEY')
+
+            echo "RAILS_MASTER_KEY=$RAILS_MASTER_KEY" >> /etc/environment
+            echo "DB_HOST=${BookstoreRDSInstance.Endpoint.Address}" >> /etc/environment
+            echo "DB_PORT=${BookstoreRDSInstance.Endpoint.Port}" >> /etc/environment
+            echo "DB_USERNAME=bookstore" >> /etc/environment
+            echo "DB_PASSWORD=bookstore" >> /etc/environment
+            echo "DB_NAME=bookstore" >> /etc/environment
+
+            source /etc/environment
+            curl -fsSL https://get.docker.com -o install-docker.sh
+            sh install-docker.sh
+            rm install-docker.sh
+            usermod -aG docker ubuntu
+            apt install -y docker-compose
+            eval "$(ssh-agent -s)"
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            cd /home/ubuntu
+            git clone https://github.com/mycotics/bookstore.git
+
+            SERVICE_FILE="/etc/systemd/system/bookstore.service"
+
+            sudo bash -c "cat > $SERVICE_FILE" <<EOL
+            [Unit]
+            Description=Bookstore Docker Compose Application Service
+            Requires=docker.service
+            After=docker.service
+
+            [Service]
+            EnvironmentFile=/etc/environment
+            WorkingDirectory=/home/ubuntu/bookstore
+            ExecStart=/usr/bin/docker compose up
+            ExecStop=/usr/bin/docker compose down
+            Restart=always
+
+            [Install]
+            WantedBy=multi-user.target
+            EOL
+
+            sudo systemctl daemon-reload
+            sudo systemctl enable bookstore
+            sudo systemctl start bookstore
+
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: BookstoreRailsServer
+              - Key: Project
+                Value: Bookstore
+
+  # Rails Master Key Role
+  BookstoreRailsMasterKeyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowSecretsManagerAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:BOOKSTORE_RAILS_MASTER_KEY-*
+
+  BookstoreInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref BookstoreRailsMasterKeyRole
+
+  # SSH EC2 Instance used for debugging
+  BookstoreSSHServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-05c172c7f0d3aed00
+      SubnetId: !Ref BookstorePublicSubnet1
+      KeyName: acohaniuc-bookstore-keypair
+      IamInstanceProfile: !Ref BookstoreInstanceProfile
+      SecurityGroupIds:
+        - !Ref BookstoreRailsServerSecurityGroup
+      Tags:
+        - Key: Name
+          Value: BookstoreSSHServer
+        - Key: Project
+          Value: Bookstore
+  # EC2 Instances using Launch Template
+  BookstoreRailsServer1:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - BookstoreRDSInstance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref BookstoreRailsLaunchTemplate
+        Version: !GetAtt BookstoreRailsLaunchTemplate.DefaultVersionNumber
+      IamInstanceProfile: !Ref BookstoreInstanceProfile
+      SubnetId: !Ref BookstorePrivateSubnet1
+      Tags:
+        - Key: Name
+          Value: BookstoreRailsServer1
+        - Key: Project
+          Value: Bookstore
+
+  BookstoreRailsServer2:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - BookstoreRDSInstance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref BookstoreRailsLaunchTemplate
+        Version: !GetAtt BookstoreRailsLaunchTemplate.DefaultVersionNumber
+      IamInstanceProfile: !Ref BookstoreInstanceProfile
+      SubnetId: !Ref BookstorePrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: BookstoreRailsServer2
+        - Key: Project
+          Value: Bookstore
+
+
+
+  # Security Group for Load Balancer
+  BookstoreLoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP access for Load Balancer
+      VpcId: !Ref BookstoreVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: BookstoreLoadBalancerSecurityGroup
+        - Key: Project
+          Value: Bookstore
+
+  # Load Balancer
+  BookstoreLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: BookstoreLoadBalancer
+      Subnets:
+        - !Ref BookstorePublicSubnet1
+        - !Ref BookstorePublicSubnet2
+      SecurityGroups:
+        - !Ref BookstoreLoadBalancerSecurityGroup
+      Scheme: internet-facing
+      Type: application
+      Tags:
+        - Key: Name
+          Value: BookstoreLoadBalancer
+        - Key: Project
+          Value: Bookstore
+
+  # Target Group
+  BookstoreTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: BookstoreTargetGroup
+      TargetType: instance
+      Port:  3000
+      Protocol: HTTP
+      VpcId: !Ref BookstoreVPC
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: 3000
+      HealthCheckPath: /products
+      Targets:
+        - Id: !Ref BookstoreRailsServer1
+        - Id: !Ref BookstoreRailsServer2
+      Tags:
+        - Key: Name
+          Value: BookstoreTargetGroup
+        - Key: Project
+          Value: Bookstore
+
+  # Listener for Load Balancer
+  BookstoreListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref BookstoreLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref BookstoreTargetGroup
+      Tags:
+        - Key: Name
+          Value: BookstoreListener
+        - Key: Project
+          Value: Bookstore
