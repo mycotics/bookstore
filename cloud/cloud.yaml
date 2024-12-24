@@ -5,6 +5,13 @@ Description: |
   instance for an ssh server and an application load balancer. Security groups are configured
   to ensure secure communication between components.
 
+Parameters:
+  BookstoreImageExists:
+    Type: String
+    AllowedValues: [true, false]
+    Default: false
+
+
 Resources:
   # VPC definition
   BookstoreVPC:
@@ -511,3 +518,11 @@ Resources:
           Value: BookstoreListener
         - Key: Project
           Value: Bookstore
+
+  # Elastic Container Registry Repository
+  BookstoreRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: BookstoreRepository
+      ImageScanningConfiguration:
+        ScanOnPush: true

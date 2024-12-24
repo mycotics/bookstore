@@ -8,6 +8,13 @@ Rails.application.routes.draw do
   get "/products", to: "products#index"
   get '/products/:slug', to: 'products#show', as: 'product'
 
+  get "/signup",  to: "signup#index", as: 'signup'
+
+  post '/captcha/generate-challenge', to: 'captcha#generate_challenge', as: 'captcha_generate'
+  post '/captcha/verify-challenge', to: 'captcha#verify_challenge', as: 'verify_challenge'
+
+
+
   get "/cart",  to: "cart#index", as: 'cart'
   post "/cart",  to: "cart#add_to_cart", as: 'add_to_cart'
   post "/cart/checkout",  to: "cart#checkout", as: 'checkout'
