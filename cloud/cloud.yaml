@@ -519,10 +519,10 @@ Resources:
         - Key: Project
           Value: Bookstore
 
-  # Elastic Container Registry Repository
-  BookstoreRepository:
-    Type: AWS::ECR::Repository
-    Properties:
-      RepositoryName: BookstoreRepository
-      ImageScanningConfiguration:
-        ScanOnPush: true
+#  # Elastic Container Registry Repository
+#  BookstoreRepository:
+#    Type: AWS::ECR::Repository
+#    Properties:
+#      RepositoryName: BookstoreRepository
+#      ImageScanningConfiguration:
+#        ScanOnPush: true
