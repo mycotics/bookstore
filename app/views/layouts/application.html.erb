@@ -12,8 +12,10 @@
             dataLayer.push(arguments);
         }
         gtag('consent', 'default', {
+            'ad_user_data': 'denied',
+            'ad_personalization': 'denied',
             'ad_storage': 'denied',
-            'analytics_storage': 'denied'
+            'analytics_storage': 'denied',
         });
     </script>
 
@@ -98,7 +100,9 @@
 
               gtag('consent', 'update', {
                   'analytics_storage': analyticsConsent ? 'granted' : 'denied',
-                  'ad_storage': marketingConsent ? 'granted' : 'denied'
+                  'ad_storage': marketingConsent ? 'granted' : 'denied',
+                  'ad_user_data': 'denied',
+                  'ad_personalization': 'denied',
               });
 
               localStorage.setItem('consentGiven', 'true');
@@ -108,7 +112,9 @@
           document.getElementById('deny-all-btn').addEventListener('click', () => {
               gtag('consent', 'update', {
                   'analytics_storage': 'denied',
-                  'ad_storage': 'denied'
+                  'ad_storage': 'denied',
+                  'ad_user_data': 'denied',
+                  'ad_personalization': 'denied',
               });
 
               localStorage.setItem('consentGiven', 'true');
