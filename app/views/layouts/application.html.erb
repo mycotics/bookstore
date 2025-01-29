@@ -6,6 +6,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
 
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('consent', 'default', {
+            'ad_storage': 'denied',
+            'analytics_storage': 'denied'
+        });
+    </script>
 
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -39,6 +49,76 @@
                     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
     <main class="">
+
+      <!-- Consent Modal -->
+      <div id="consent-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-md">
+          <h2 class="text-lg font-semibold mb-4 dark:text-gray-400">Cookie Preferences</h2>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            We use cookies to enhance your experience. Choose which cookies you'd like to accept.
+          </p>
+
+          <!-- Checkboxes -->
+          <div class="space-y-2">
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" checked id="analytics-checkbox" class="h-4 w-4 text-blue-600 dark:bg-gray-700 dark:border-gray-600">
+              <span class="text-sm text-gray-700 dark:text-gray-300">Accept Analytics Cookies</span>
+            </label>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" checked id="marketing-checkbox" class="h-4 w-4 text-blue-600 dark:bg-gray-700 dark:border-gray-600">
+              <span class="text-sm text-gray-700 dark:text-gray-300">Accept Marketing Cookies</span>
+            </label>
+          </div>
+
+          <!-- Buttons -->
+          <div class="mt-6 flex justify-between">
+            <button id="allow-btn" class="flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4  focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+              Allow
+            </button>
+            <div class="px-5"></div>
+            <button id="deny-all-btn" class="flex w-full items-center justify-center rounded-lg  px-5 py-2.5 text-sm font-medium text-white border-gray-300 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700">
+              Deny All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <script>
+
+          const consentModal = document.getElementById('consent-modal');
+          const hasConsented = localStorage.getItem('consentGiven');
+
+          if (hasConsented !== 'true') {
+              consentModal.classList.remove('hidden');
+          }
+
+          document.getElementById('allow-btn').addEventListener('click', () => {
+              const analyticsConsent = document.getElementById('analytics-checkbox').checked;
+              const marketingConsent = document.getElementById('marketing-checkbox').checked;
+
+              gtag('consent', 'update', {
+                  'analytics_storage': analyticsConsent ? 'granted' : 'denied',
+                  'ad_storage': marketingConsent ? 'granted' : 'denied'
+              });
+
+              localStorage.setItem('consentGiven', 'true');
+              consentModal.classList.add('hidden');
+          });
+
+          document.getElementById('deny-all-btn').addEventListener('click', () => {
+              gtag('consent', 'update', {
+                  'analytics_storage': 'denied',
+                  'ad_storage': 'denied'
+              });
+
+              localStorage.setItem('consentGiven', 'true');
+              consentModal.classList.add('hidden');
+          });
+
+
+      </script>
+
+
       <%= render 'nav' %>
 
       <%= yield %>
