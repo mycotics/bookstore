@@ -99,7 +99,7 @@ module Bookstore
     # config.eager_load_paths << Rails.root.join('app', 'middleware')
 
     # require Rails.root.join('middleware', 'data_layer_middleware')
-    
+
     config.middleware.use DataLayerMiddleware
 
   end
