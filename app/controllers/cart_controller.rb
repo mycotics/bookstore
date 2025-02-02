@@ -39,6 +39,8 @@ class CartController < ApplicationController
     session_token = JwtService.encode(session_data)
     session['session'] = session_token
 
+    DataLayer.add_data({ event: 'add_to_cart', user_id: 123 })
+
     redirect_to cart_path
 
   end
